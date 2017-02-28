@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html ng-app='app'>
+<head>
+   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/lumx/1.4.4/lumx.css">
+   <style>
+      html { font-size: 1.3em; }
+
+      .container {
+         max-width: 600px; margin: 0 auto;
+      }
+   </style>
+</head>
+<body ng-controller="ctrl">
+<div class="container mt++">
+   <h1>Settings</h1>
+   <hr/>
+<pre>
+   <div>{{ settings |json}}</div>
+
+</pre>
+   <hr/>
+
+   <ul class="list">
+      <li class="list-row">
+         <div class="list-row__content">
+         </div>
+      </li>
+      <li class="list-row" ng-repeat="option in options">
+         <div class="list-row__content">
+            <div ng-if="option.type == 'radio'">
+               <lx-radio-group>
+                  <lx-radio-button ng-repeat="value in option.values" name="{{option.title}}" ng-value="value" ng-model="settings[option.title]">{{value}}</lx-radio-button>
+               </lx-radio-group>
+            </div>
+
+            <div ng-if="option.type == 'checkbox'">
+               <lx-switch ng-model="nzbClient.settings[option.title]" lx-color="green">{{option.title}}</lx-switch>
+            </div>
+
+            <div ng-if="['text','url','email'].indexOf(option.type) != -1">
+               <lx-text-field lx-label="{{option.title}}"  lx-allow-clear="true"
+                              lx-valid="validate(option.type, settings[option.title])"
+                              lx-error="!validate(option.type, settings[option.title])">
+                  <input type="{{option.type}}" ng-model="settings[option.title]" required>
+               </lx-text-field>
+            </div>
+            <small class="text-field-error" ng-if="!validate(option.type, settings[option.title])" ng-bind="getValidationError(option.type)">{</small>
+
+         </div>
+      </li>
+      <li class="list-row">
+         <div class="list-row__content">
+            <lx-text-field lx-label="enabled Sites">
+               <textarea ng-model="settings['sites']" ng-list="&#10;" ng-trim="false">asd</textarea>
+            </lx-text-field>
+         </div>
+      </li>
+   </ul>
+   <br/><br/>
+   <div flex-container="row">
+      <lx-button flex-item lx-color="orange" ng-click="test()">test</lx-button>
+      <lx-button flex-item lx-color="green" ng-click="saveSettings()">save</lx-button>
+   </div>
+
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/angular.js/1.6.1/angular.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/lumx/1.4.4/lumx.min.js"></script>
+<script src="js/options.js"></script>
+</body>
+</html>
