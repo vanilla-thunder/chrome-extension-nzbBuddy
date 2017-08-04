@@ -1,7 +1,7 @@
 {
   "manifest_version": 2,
   "name": "nzbBuddy",
-  "version": "0.0.1",
+  "version": "0.0.4",
   "description": "Chrome extension for Sabnzbd or Nzbget",
   "minimum_chrome_version": "23.0",
   "background": {
@@ -13,6 +13,9 @@
     "default_icon": "icons/nzb_off.png",
     "name": "nzbBuddy"
   },
+  "web_accessible_resources": [
+    "js/jquery.slim.min.js"
+  ],
   "permissions": [
     "*://*/*",
     "tabs",
