@@ -1,62 +1,62 @@
 'use strict';
 
-angular.module('app', ['lumx']).controller('ctrl', function ($scope, $http,LxNotificationService ) {
+angular.module('app', ['ngMaterial']).controller('ctrl', function ($scope, $http, $mdToast ) {
 
-    $scope.options = [
-        {title: 'client', type: 'radio', values: ['SabNZBd', 'NewsBin']},
-        {title: 'url', type: 'url'},
-        {title: 'api-key', type: 'text', values: []},
-        {title: 'nzb-key', type: 'text', values: []},
-        {title: 'cat-tv', type:'text'},
-        {title: 'cat-movie', type:'text'},
-        {title: 'cat-xxx', type:'text'}
-    ];
-    $scope.settings = {};
-    $scope.sites = '';
+    $scope.msg = function(_msg,_time){
+        $mdToast.show(
+            $mdToast.simple()
+                .textContent(_msg)
+                .position('top right')
+                .hideDelay(_time || 3000)
+        );
+    };
+
+    $scope.settings = {
+        'client':'sabnzbd',
+        'url':'',
+        'apikey':'',
+        'sites': {}
+    };
 
     $scope.loadSettings = function() {
         chrome.storage.sync.get('settings', function(data) {
+            console.log("loaded settings:");
+            console.log(data);
             $scope.settings = data.settings;
-            $scope.$apply();
+            //$.extend($scope.settings,data.settings)
+            //$scope.$apply();
         });
     };
     $scope.saveSettings = function() {
         chrome.storage.sync.set({'settings': $scope.settings}, function() {
-            LxNotificationService.success("settings saved!");
+            $scope.msg("settings saved!");
         });
     };
-
+$scope.clearStorage = function() {
+    chrome.storage.sync.clear(function() {
+        $scope.loadSettings();
+    });
+};
     $scope.loadSettings("settings");
-    //$scope.loadSettings("sites");
 
-    $scope.validate = function (type, value) {
-        switch (type) {
-            case "url":
-                return /https?:\/\/.+/gi.test(value);
-                break;
-            default:
-                return (typeof value !== "undefined" && value.length > 0) ? true : false;
-                break;
-        }
-    };
-    $scope.getValidationError = function (type) {
-        switch (type) {
-            case "url":
-                return 'URL must contain http/s and port number, like: http://localhost:8080';
-                break;
-            default:
-                return 'this field is required!';
-                break;
-        }
-    };
-    $scope.testSettings = function () {
-        //if (jQuery.isEmptyObject(settings)) console.log("_settings not set!");
-        var data = apiRequest('mode=version', function (data) {
-            console.log(data);
-            console.log(settings.client + ' ' + data.version + ' running');
-        }, function () {
-            console.log("Läuft SabNZBd überhaupt?");
+
+    $scope.sendMessage = function(_data) {
+        console.log("sending message and data:");
+        console.log(_data);
+        chrome.runtime.sendMessage(_data, function(response) {
+            if(typeof response.error !== "undefined") $scope.msg("das war nix!");
+            else $scope.msg($scope.settings.client + " version: " + response.version);
+            console.log("response");
+            console.log(response);
         });
     };
-    //$scope.options.forEach(function (value, index, array) { $scope.settings[value.title] = ''; });
+
+    chrome.runtime.onMessage.addListener(
+        function(request, sender, sendResponse) {
+            console.log(sender.tab ?
+                "from a content script:" + sender.tab.url :
+                "from the extension");
+            if (request.greeting == "hello")
+                sendResponse({farewell: "goodbye"});
+        });
 });
