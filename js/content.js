@@ -7,7 +7,7 @@ var selector = {
         nzbname: 'input[type="text"]',
         urlregex: 'https?:\/\/de-refer\.me\/\?'
     },
-    'wwwg.host-of-usenet.orgg': {
+    'www.ghost-of-usenet.orgg': {
         post: 'div[id^="post_message_"]',
         thx: 'div[id^="enb_hhr_hide_thanks"]',
         nzbname: 'input[type="text"]'
@@ -16,6 +16,17 @@ var selector = {
 
 
 var $body = $("body");
+
+function deparam(url) {
+    url        = url.substring(url.indexOf('?') + 1).split('&');
+    var params = {}, pair, d = decodeURIComponent, i;
+    // march and parse
+    for (i = url.length; i > 0;) {
+        pair               = url[--i].split('=');
+        params[d(pair[0])] = d(pair[1]);
+    }
+    return params;
+}
 
 function createOverlay($link, $items) {
     $("#dlpass").remove();
@@ -26,15 +37,15 @@ function createOverlay($link, $items) {
         if (debug) console.log("selectors set found:");
         if (debug) console.log(selector);
 
-        var $post = $link.parents(selector.post),
+        var $post        = $link.parents(selector.post),
             //$container = $link.parents('td').first(),
-            $thxcontent = $post.find(selector.thx),
+            $thxcontent  = $post.find(selector.thx),
 
-            pagetitle = document.title,
+            pagetitle    = document.title,
 
-            dltitle = '',
-            dlpass = '',
-            nzbname = '',
+            dltitle      = '',
+            dlpass       = '',
+            nzbname      = '',
             nzbnameinput = $post.find(selector.nzbname);
 
         if (debug) console.log(nzbnameinput);
@@ -66,18 +77,18 @@ function createOverlay($link, $items) {
         if (window.getSelection && window.getSelection().toString().length) {
             if (debug) console.log('got password from window.getSelection()');
             var pass = null;
-            pass = window.getSelection().toString();
+            pass     = window.getSelection().toString();
             if (pass.length) {
-                dlpass = pass;
+                dlpass       = pass;
                 $pwcontainer = $(window.getSelection().getRangeAt(0).startContainer.parentNode);
             }
         }
         else if (document.selection && document.selection.type != "Control" && document.selection.createRange().text.length) {
             if (debug) console.log('got password from document.selection.createRange()');
             var pass = null;
-            pass = document.selection.createRange().text;
+            pass     = document.selection.createRange().text;
             if (pass.length) {
-                dlpass = pass;
+                dlpass       = pass;
                 $pwcontainer = $(document.selection.createRange().parentElement());
             }
         }
@@ -90,9 +101,9 @@ function createOverlay($link, $items) {
                 if ($match = /passwor[dt].\s(.*)\s/gi.exec($(this).text())) {
                     if (debug) console.log("regex pass found");
                     var pass = null;
-                    pass = $match[1];
+                    pass     = $match[1];
                     if (pass.length) {
-                        dlpass = pass;
+                        dlpass       = pass;
                         $pwcontainer = $(this);
                         //fertig = true;
                         return false;
@@ -116,9 +127,9 @@ function createOverlay($link, $items) {
         if (window.getSelection && window.getSelection().toString().length) {
             if (debug) console.log('got password from window.getSelection()');
             var pass = null;
-            pass = window.getSelection().toString();
+            pass     = window.getSelection().toString();
             if (pass.length) {
-                dlpass = pass;
+                dlpass       = pass;
                 $pwcontainer = $(window.getSelection().getRangeAt(0).startContainer.parentNode);
             }
         }
@@ -142,9 +153,9 @@ function createOverlay($link, $items) {
         event.preventDefault();
 
         var title = $(this).data("title"),
-            alt = $(this).data("alt"),
-            pass = $(this).data("pass"),
-            url = $(this).data("nzb");
+            alt   = $(this).data("alt"),
+            pass  = $(this).data("pass"),
+            url   = $(this).data("nzb");
 
         if (debug) console.log(title);
         if (debug) console.log(alt);
@@ -170,14 +181,16 @@ function createOverlay($link, $items) {
     return false;
 }
 
-function handleSearchLink($link, $provider) {
+function searchNZB($link, $provider) {
     console.log(selector);
+    var nzbname = '';
+
     if (typeof selector !== 'undefined') // selector vorhanden
     {
-        var $post = $link.parents(selector.post),
-            $thx = $post.find(selector.thx),
+        var $post    = $link.parents(selector.post),
+            $thx     = $post.find(selector.thx),
             $nzbname = $post.find(selector.nzbname),
-            nzbname = '';
+            nzbname  = '';
 
         console.log('$nzbname:');
         console.log($nzbname);
@@ -185,48 +198,68 @@ function handleSearchLink($link, $provider) {
         console.log($thx);
 
 
-
         if ($nzbname.length == 1) nzbname = $nzbname.val();
-        else $nzbname.each(function () { nzbname = ($(this).val().length > nzbname.length) ? $(this).val() : nzbname; });
+        else $nzbname.each(function () {
+            nzbname = ($(this).val().length > nzbname.length) ? $(this).val() : nzbname;
+        });
 
-        if(nzbname.indexOf('{{') == -1 || nzbname.indexOf('}}') == -1 ) console.log("nix pw!!");
+        if (nzbname.indexOf('{{') == -1 || nzbname.indexOf('}}') == -1) console.log("nix pw!!");
         //else console.log("pw drin!");
         //console.log(nzbname);
     }
+
+    // fallback if there is no title at all
+    if (nzbname === '') nzbname = document.title;
+
     var nzb = {
         title: nzbname,
-        url: $link.attr("href")
+        url: $link.attr("href"),
+        provider: $provider
     };
-    console.log("nzb:");
+    console.log("nzb search:");
     console.log(nzb);
-    chrome.runtime.sendMessage({'nzb': nzb, 'provider': $provider});
+    chrome.runtime.sendMessage({'search': nzb});
 }
 
 
 function initJS() {
-    // direct nzblink usenet-4all.info
-    $(document).on('click', 'a[href*="nzblnk:?"]', function (e) {
-        e.preventDefault();
-        e.stopPropagation();
-        chrome.runtime.sendMessage({'nzb': {'url': jQuery(this).attr('href').replace('https://de-refer.me/?', '').replace('http://de-refer.me/?', '')}, 'provider': 'nzblink'});
-    });
-
+    //console.log("loading nzbBuddy scripts");
     var links = [
+        {provider: 'nzblnk', link: 'a[href*="nzblnk:?"]'},
         {provider: 'nzbclub', link: 'a[href*="nzbclub.com/search.aspx"]'},
         {provider: 'nzbindex', link: 'a[href*="nzbindex.com/search/?"]'},
         {provider: 'nzbindex', link: 'a[href*="nzbindex.nl/search/?"]'},
-        {provider: 'binsearch', link: 'a[href*="binsearch.info/?"]'},
+        {provider: 'binsearch', link: 'a[href*="binsearch.info/?"]'}
     ];
 
+    // ghost of usenet hack
+    /*
+     var extLinks = $('a.externalURL').toArray();
+     extLinks.forEach(function (_link, index, array) {
+        console.log("external link",_link);
+        var params = deparam($(_link).attr("href"));
+        console.log("params:",params);
+         links.forEach(function (element, index, array) {
+             var _a = $('<a></a>');
+             _a.attr("href",window.atob(params.ref));
+             console.log("check against "+ element.provider);
+             console.log(_a.matches(element.selector));
+         });
+        //$(element).attr('href',decodeURIComponent( window.atob(params.ref) ));
+     });
+     */
+
     links.forEach(function (element, index, array) {
-        //console.log("verarbeite "+element.provider+" links: "+element.link);
-        $(element.link).off();
+        //console.log(element.provider +" links",$(element.link));
+        $(element.link).off('click');
+
         //$(element.link).unbind();
         $(document).on('click', element.link, function (e) {
             e.preventDefault();
             e.stopPropagation();
-            handleSearchLink(jQuery(this), element.provider);
+            searchNZB($(this), element.provider);
         });
     });
 }
+
 initJS();
