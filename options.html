@@ -1,72 +1,63 @@
-<!DOCTYPE html>
-<html ng-app='app'>
+<html lang="en">
 <head>
-   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/lumx/1.4.4/lumx.css">
+   <meta name="viewport" content="width=device-width, initial-scale=1">
+   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/angular-material/1.1.0/angular-material.min.css">
+   <title>nzbBuffy Settings</title>
    <style>
-      html { font-size: 1.3em; }
-
-      .container {
-         max-width: 600px; margin: 0 auto;
-      }
+      body { font-size: 1.3em; }
+      .container { max-width: 600px; margin: auto; }
    </style>
 </head>
-<body ng-controller="ctrl">
-<div class="container mt++">
-   <h1>Settings</h1>
+<body ng-app='app' ng-controller="ctrl" ng-cloak>
+<div class="container">
+   <md-content>
+      <h3>Settings</h3>
+      <hr/>
+      <p>
+         <md-radio-group ng-model="settings.client">
+            <md-radio-button value="sabnzbd">SabNZBd</md-radio-button>
+            <md-radio-button value="nzbget">NZBGet</md-radio-button>
+         </md-radio-group>
+      </p>
+      <hr/>
+      <br/>
+      <p>
+         <md-input-container class="md-block">
+            <label>URL</label>
+            <input ng-model="settings.url" required ng-change="saveSettings()">
+         </md-input-container>
+      </p>
+
+      <p>
+         <md-input-container class="md-block">
+            <label><span ng-if="settings.client === 'nzbget'">User:Password</span><span ng-if="settings.client !== 'nzbget'">API Key</label>
+            <input ng-model="settings.apikey" required ng-change="saveSettings()">
+         </md-input-container>
+      </p>
+
+      <p>
+         <md-input-container class="md-block">
+            <label>Usenet sites</label>
+            <textarea ng-model="settings.sites" ng-list="&#10;" ng-trim="false"></textarea>
+         </md-input-container>
+      </p>
+      <md-button class="md-raised md-primary" ng-click="saveSettings();">save</md-button>
+      <md-button class="md-raised md-primary" ng-click="sendMessage({fnc:'test'})">test connection</md-button>
+      <md-button class="md-raised md-warn" ng-click="clearStorage()">storage leeren</md-button>
+
+
+   </md-content>
+
+   <pre>{{ settings |json }}</pre>
    <hr/>
-<pre>
-   <div>{{ settings |json}}</div>
-
-</pre>
-   <hr/>
-
-   <ul class="list">
-      <li class="list-row">
-         <div class="list-row__content">
-         </div>
-      </li>
-      <li class="list-row" ng-repeat="option in options">
-         <div class="list-row__content">
-            <div ng-if="option.type == 'radio'">
-               <lx-radio-group>
-                  <lx-radio-button ng-repeat="value in option.values" name="{{option.title}}" ng-value="value" ng-model="settings[option.title]">{{value}}</lx-radio-button>
-               </lx-radio-group>
-            </div>
-
-            <div ng-if="option.type == 'checkbox'">
-               <lx-switch ng-model="nzbClient.settings[option.title]" lx-color="green">{{option.title}}</lx-switch>
-            </div>
-
-            <div ng-if="['text','url','email'].indexOf(option.type) != -1">
-               <lx-text-field lx-label="{{option.title}}"  lx-allow-clear="true"
-                              lx-valid="validate(option.type, settings[option.title])"
-                              lx-error="!validate(option.type, settings[option.title])">
-                  <input type="{{option.type}}" ng-model="settings[option.title]" required>
-               </lx-text-field>
-            </div>
-            <small class="text-field-error" ng-if="!validate(option.type, settings[option.title])" ng-bind="getValidationError(option.type)">{</small>
-
-         </div>
-      </li>
-      <li class="list-row">
-         <div class="list-row__content">
-            <lx-text-field lx-label="enabled Sites">
-               <textarea ng-model="settings['sites']" ng-list="&#10;" ng-trim="false">asd</textarea>
-            </lx-text-field>
-         </div>
-      </li>
-   </ul>
-   <br/><br/>
-   <div flex-container="row">
-      <lx-button flex-item lx-color="orange" ng-click="test()">test</lx-button>
-      <lx-button flex-item lx-color="green" ng-click="saveSettings()">save</lx-button>
-   </div>
 
 </div>
-
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/angular.js/1.6.1/angular.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/lumx/1.4.4/lumx.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/angular.js/1.6.1/angular-animate.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/angular.js/1.6.1/angular-aria.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/angular.js/1.6.1/angular-messages.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/angular-material/1.1.0/angular-material.min.js"></script>
 <script src="js/options.js"></script>
 </body>
 </html>
