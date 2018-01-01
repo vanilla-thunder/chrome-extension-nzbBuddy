@@ -180,39 +180,105 @@ function createOverlay($link, $items) {
     return false;
 }
 */
+
+var debug = true;
+
 function searchNZB($link, $provider) {
+    toastr.info('Suche läuft...', null, { timeOut: 300 });
     var nzb = {
         title: document.title,
-        url: $link.attr("href"),
+        link: $link.text(),
+        url: $link[0].href || $link.attr("href"),
         provider: $provider
     };
-    chrome.runtime.sendMessage({'search': nzb});
+    if (this.debug) console.log("starting nzb search ", nzb);
+    chrome.runtime.sendMessage({ 'search': nzb });
 }
 
+function downloadNZB(search, result) {
+    toastr.remove();
+    chrome.runtime.sendMessage({
+        'enqueue': {
+            'url': result.nzb,
+            'title': search.title.replace(/\./g, ' ') + (search.pass ? '{{' + search.pass + '}}' : ''),
+            'category': search.category,
+            'desc': result.title + "\r\n" + result.desc
+        }
+    });
+};
 
-function initJS() {
-    //console.log("loading nzbBuddy scripts");
+if (typeof window.nzbBUddy === "undefined")
+{
+    chrome.runtime.onMessage.addListener(function($request, sender, sendResponse) {
+        console.log("new message", $request);
+        if (typeof $request.success !== "undefined") toastr.success($request.msg || '', $request.success );
+        else if (typeof $request.info !== "undefined") toastr.info($request.msg || '', $request.info);
+        else if (typeof $request.warning !== "undefined") toastr.warning($request.msg || '', $request.warning);
+        else if (typeof $request.error !== "undefined") toastr.error($request.msg || '', $request.error);
+        else if (typeof $request.celar !== "undefined") toastr.clear();
+        else if (typeof $request.search !== "undefined" && typeof $request.results !== "undefined") {
+            toastr.remove();
+            toastr.warning($request.msg || 'wähle eins:', $request.title || $request.results.length + ' Ergebnisse gefunden', {
+                timeOut: 0,
+                extendedTimeOut: 0,
+                tapToDismiss: false,
+                onclick: function() {
+                    toastr.clear();
+                }
+            });
+            $request.results.forEach(function(_result) {
+                //console.log(_result);
+                toastr.info(_result.desc, _result.title, {
+                    timeOut: 0,
+                    extendedTimeOut: 0,
+                    tapToDismiss: false,
+                    onclick: function() {
+                        downloadNZB($request.search, _result);
+                    }
+                });
+            });
+        }
+    });
+
+    if (this.debug) console.log("loading nzbBuddy scripts");
     var links = [
-        //{provider: 'nzblnk', link: 'a[href*="nzblnk:?"]'},
+        { provider: 'nzblnk', link: 'a[href*="nzblnk:"]' },
         //{provider: 'nzbclub', link: 'a[href*="nzbclub.com/search.aspx"]'},
-        {provider: 'nzbindex', link: 'a[href*="nzbindex.com/search/?"]'},
-        {provider: 'nzbindex', link: 'a[href*="nzbindex.nl/search/?"]'},
+        { provider: 'nzbindex', link: 'a[href*="nzbindex.com/search/?"]' },
+        { provider: 'nzbindex', link: 'a[href*="nzbindex.nl/search/?"]' }
         //{provider: 'binsearch', link: 'a[href*="binsearch.info/?"]'},
-        {provider: 'newzleech', link: 'a[href*="newzleech.com/?"]'}
+        //{provider: 'newzleech', link: 'a[href*="newzleech.com/?"]'} 
     ];
 
-
-    links.forEach(function (element, index, array) {
-        //console.log(element.provider +" links",$(element.link));
-        //$(element.link).off('click');
-
-        //$(element.link).unbind();
-        $(document).on('click', element.link, function (e) {
+    links.forEach(function(element, index, array) {
+        $(document).on('click', element.link, function(e) {
             e.preventDefault();
             e.stopPropagation();
             searchNZB($(this), element.provider);
         });
     });
-}
 
-initJS();
+    // NZB Datei als post attachment
+    /*
+    $(document).on('click', 'a[href*="attachments/"],a[href*="attachment.php"]', function(e) {
+        if ($(this).text().match(".*nzb.*")) {
+            e.preventDefault();
+            e.stopPropagation();
+            console.log("nzb attachment");
+            searchNZB($(this), 'attachment');
+        }
+    });
+    */
+
+    window.nzbBUddy = true;
+
+    toastr.options.showEasing = 'swing';
+    toastr.options.hideEasing = 'linear';
+    toastr.options.showMethod = 'fadeIn';
+    toastr.options.hideMethod = 'fadeOut';
+    toastr.options.closeMethod = 'fadeOut';
+    //toastr.options.closeDuration = 300;
+    toastr.options.timeOut = 5000;
+    toastr.options.newestOnTop = false;
+    toastr.options.positionClass = 'toast-bottom-right';
+}

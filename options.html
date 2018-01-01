@@ -1,63 +1,95 @@
-<html lang="en">
+<!doctype html>
+<html lang="en" ng-app="app">
 <head>
-   <meta name="viewport" content="width=device-width, initial-scale=1">
-   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/angular-material/1.1.0/angular-material.min.css">
+   <meta charset="UTF-8">
+   <meta name="viewport" content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+   <meta http-equiv="X-UA-Compatible" content="ie=edge">
    <title>nzbBuffy Settings</title>
+   <link rel="stylesheet" href="assets/spectre.min.css" />
    <style>
-      body { font-size: 1.3em; }
-      .container { max-width: 600px; margin: auto; }
+      #app { max-width:600px;
+      margin: 0 auto;}
    </style>
 </head>
-<body ng-app='app' ng-controller="ctrl" ng-cloak>
-<div class="container">
-   <md-content>
-      <h3>Settings</h3>
-      <hr/>
-      <p>
-         <md-radio-group ng-model="settings.client">
-            <md-radio-button value="sabnzbd">SabNZBd</md-radio-button>
-            <md-radio-button value="nzbget">NZBGet</md-radio-button>
-         </md-radio-group>
-      </p>
-      <hr/>
-      <br/>
-      <p>
-         <md-input-container class="md-block">
-            <label>URL</label>
-            <input ng-model="settings.url" required ng-change="saveSettings()">
-         </md-input-container>
-      </p>
+<body>
+<div id="app" ng-controller="ctrl">
 
-      <p>
-         <md-input-container class="md-block">
-            <label><span ng-if="settings.client === 'nzbget'">User:Password</span><span ng-if="settings.client !== 'nzbget'">API Key</label>
-            <input ng-model="settings.apikey" required ng-change="saveSettings()">
-         </md-input-container>
-      </p>
+   <form class="form-horizontal">
 
-      <p>
-         <md-input-container class="md-block">
-            <label>Usenet sites</label>
-            <textarea ng-model="settings.sites" ng-list="&#10;" ng-trim="false"></textarea>
-         </md-input-container>
-      </p>
-      <md-button class="md-raised md-primary" ng-click="saveSettings();">save</md-button>
-      <md-button class="md-raised md-primary" ng-click="sendMessage({fnc:'test'})">test connection</md-button>
-      <md-button class="md-raised md-warn" ng-click="clearStorage()">storage leeren</md-button>
+      <!-- client -->
+      <div class="form-group my-2 py-2">
+         <div class="col-3">
+            <label class="form-label">NZB Client</label>
+         </div>
+         <div class="col-9">
+            <label class="form-switch">
+               <input type="radio" name="nzbclient" ng-model="settings.local.nzbclient" value="SabNZBd">
+               <i class="form-icon"></i> SabNZBd
+            </label>
+            <label class="form-switch">
+               <input type="radio" name="nzbclient" ng-model="settings.local.nzbclient" value="NZBGet">
+               <i class="form-icon"></i> NZBGet
+            </label>
+         </div>
+      </div>
 
+      <!-- url -->
+      <div class="form-group">
+         <div class="col-3">
+            <label class="form-label">URL</label>
+         </div>
+         <div class="col-9">
+            <input type="text" class="form-input" ng-model="settings.local.url">
+         </div>
+      </div>
 
-   </md-content>
+      <!-- token -->
+      <div class="form-group">
+         <div class="col-3">
+            <label class="form-label">API Key</label>
+         </div>
+         <div class="col-9">
+            <input type="text" class="form-input" ng-model="settings.local.auth">
+         </div>
+      </div>
 
+      <!-- title cleanup -->
+      <div class="form-group my-2 py-2">
+         <div class="col-3 mb-2 pb-2">
+            <label class="form-label">Titel bereinigen?</label>
+         </div>
+         <div class="col-9 mb-2 pb-2">
+            <label class="form-switch">
+               <input type="hidden" name="titlecleanup" ng-model="settings.global.titlecleanup" value="0">
+               <input type="checkbox" name="titlecleanup" ng-model="settings.global.titlecleanup" value="1">
+               <i class="form-icon"></i> <span ng-if="settings.global.titlecleanup != 1">nö</span><span ng-if="settings.global.titlecleanup == 1">jo</span>
+            </label>
+            <a href="https://de.wikipedia.org/wiki/Regul%C3%A4rer_Ausdruck" target="_blank">RegEx</a> zum entfernen<!--(<small style="color:red;">unbedingt <b>\</b> escapen => <b>\\</b></small>)-->:
+            <textarea class="form-input" ng-model="settings.global.titlereplaces" rows="{{settings.global.titlereplaces.length+1}}" ng-list="&#10;" ng-trim="false"></textarea>
+            <button class="btn btn-block" ng-click="resetTitleRepalces()">standard Strings wiederherstellen</button>
+         </div>
+      </div>
+
+      <!-- enabled sites -->
+      <div class="form-group my-2 py-2">
+         <div class="col-3">
+            <label class="form-label">Sites</label>
+         </div>
+         <div class="col-9">
+            <textarea class="form-input" ng-model="settings.global.sites" rows="{{settings.global.sites.length+1}}" ng-list="&#13;&#10" ng-trim="false"></textarea>
+         </div>
+      </div>
+
+      <div class="form-group">
+         <div class="col-3"></div>
+         <div class="col-9">
+            <button class="btn btn-success btn-block" ng-click="saveSettings()">save</button>
+         </div>
+      </div>
+   </form>
    <pre>{{ settings |json }}</pre>
-   <hr/>
-
 </div>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/angular.js/1.6.1/angular.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/angular.js/1.6.1/angular-animate.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/angular.js/1.6.1/angular-aria.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/angular.js/1.6.1/angular-messages.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/angular-material/1.1.0/angular-material.min.js"></script>
-<script src="js/options.js"></script>
+<script src="assets/angular.min.js"></script>
+<script src="assets/options.js"></script>
 </body>
 </html>

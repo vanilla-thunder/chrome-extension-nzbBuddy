@@ -1,13 +1,13 @@
 {
   "manifest_version": 2,
   "name": "nzbBuddy",
-  "version": "0.0.6",
-  "description": "Chrome extension for Sabnzbd or Nzbget",
-  "minimum_chrome_version": "23.0",
+  "version": "0.2.0",
+  "description": "Chrome extension for processing nzblnk",
+  "minimum_chrome_version": "45.0",
   "background": {
     "scripts": [
-      "js/jquery.min.js",
-      "js/background.js"
+      "assets/jquery.min.js",
+      "assets/background.js"
     ],
     "persistent": false
   },
@@ -17,24 +17,17 @@
     "name": "nzbBuddy"
   },
   "web_accessible_resources": [
-    "js/jquery.slim.min.js"
+    "assets/jquery.min.js",
+    "assets/toastr.min.js",
+    "assets/toastr.min.css"
   ],
   "permissions": [
     "*://*/*",
-    "tabs",
-    "commands",
     "contextMenus",
     "notifications",
-    "storage"
+    "storage",
+    "tabs",
+    "ttsEngine"
   ],
-  "commands": {
-    "process-usenet-search": {
-      "suggested_key": {
-        "default": "Ctrl+Shift+S",
-        "mac": "Command+Shift+S"
-      },
-      "description": "Process useent search"
-    }
-  },
-  "content_security_policy": "script-src 'self' 'unsafe-eval' https://cdnjs.cloudflare.com/; object-src 'self'"
+  "content_security_policy": "script-src 'self' 'unsafe-eval'; object-src 'self'"
 }
