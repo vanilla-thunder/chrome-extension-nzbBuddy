@@ -1,5 +1,4 @@
-var debug = true;
-
+/*
 var selector = {
     'usenet-4all.info': {
         post: 'div[id^="post_message_"]',
@@ -180,44 +179,13 @@ function createOverlay($link, $items) {
 
     return false;
 }
-
+*/
 function searchNZB($link, $provider) {
-    console.log(selector);
-    var nzbname = '';
-
-    if (typeof selector !== 'undefined') // selector vorhanden
-    {
-        var $post    = $link.parents(selector.post),
-            $thx     = $post.find(selector.thx),
-            $nzbname = $post.find(selector.nzbname),
-            nzbname  = '';
-
-        console.log('$nzbname:');
-        console.log($nzbname);
-        console.log('$thx:');
-        console.log($thx);
-
-
-        if ($nzbname.length == 1) nzbname = $nzbname.val();
-        else $nzbname.each(function () {
-            nzbname = ($(this).val().length > nzbname.length) ? $(this).val() : nzbname;
-        });
-
-        if (nzbname.indexOf('{{') == -1 || nzbname.indexOf('}}') == -1) console.log("nix pw!!");
-        //else console.log("pw drin!");
-        //console.log(nzbname);
-    }
-
-    // fallback if there is no title at all
-    if (nzbname === '') nzbname = document.title;
-
     var nzb = {
-        title: nzbname,
+        title: document.title,
         url: $link.attr("href"),
         provider: $provider
     };
-    console.log("nzb search:");
-    console.log(nzb);
     chrome.runtime.sendMessage({'search': nzb});
 }
 
@@ -225,33 +193,18 @@ function searchNZB($link, $provider) {
 function initJS() {
     //console.log("loading nzbBuddy scripts");
     var links = [
-        {provider: 'nzblnk', link: 'a[href*="nzblnk:?"]'},
-        {provider: 'nzbclub', link: 'a[href*="nzbclub.com/search.aspx"]'},
+        //{provider: 'nzblnk', link: 'a[href*="nzblnk:?"]'},
+        //{provider: 'nzbclub', link: 'a[href*="nzbclub.com/search.aspx"]'},
         {provider: 'nzbindex', link: 'a[href*="nzbindex.com/search/?"]'},
         {provider: 'nzbindex', link: 'a[href*="nzbindex.nl/search/?"]'},
-        {provider: 'binsearch', link: 'a[href*="binsearch.info/?"]'}
+        //{provider: 'binsearch', link: 'a[href*="binsearch.info/?"]'},
+        {provider: 'newzleech', link: 'a[href*="newzleech.com/?"]'}
     ];
 
-    // ghost of usenet hack
-    /*
-     var extLinks = $('a.externalURL').toArray();
-     extLinks.forEach(function (_link, index, array) {
-        console.log("external link",_link);
-        var params = deparam($(_link).attr("href"));
-        console.log("params:",params);
-         links.forEach(function (element, index, array) {
-             var _a = $('<a></a>');
-             _a.attr("href",window.atob(params.ref));
-             console.log("check against "+ element.provider);
-             console.log(_a.matches(element.selector));
-         });
-        //$(element).attr('href',decodeURIComponent( window.atob(params.ref) ));
-     });
-     */
 
     links.forEach(function (element, index, array) {
         //console.log(element.provider +" links",$(element.link));
-        $(element.link).off('click');
+        //$(element.link).off('click');
 
         //$(element.link).unbind();
         $(document).on('click', element.link, function (e) {
