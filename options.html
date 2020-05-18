@@ -79,7 +79,21 @@
             <textarea class="form-input" ng-model="settings.global.sites" rows="{{settings.global.sites.length+1}}" ng-list="&#13;&#10" ng-trim="false"></textarea>
          </div>
       </div>
-
+      
+      <!-- Debug Output in der Console -->
+      <div class="form-group">
+         <div class="col-3">
+            <label class="form-label">Debug Ausgaben</label>
+         </div>
+         <div class="col-9">
+            <label class="form-switch">
+               <input type="hidden" name="titlecleanup" ng-model="settings.local.debug" value="0">
+               <input type="checkbox" name="titlecleanup" ng-model="settings.local.debug" value="1">
+               <i class="form-icon"></i> <span ng-if="settings.local.debug != 1">nö</span><span ng-if="settings.local.debug == 1">jo</span>
+            </label>
+         </div>
+      </div>
+      
       <div class="form-group">
          <div class="col-3"></div>
          <div class="col-9">
@@ -87,7 +101,7 @@
          </div>
       </div>
    </form>
-   <pre>{{ settings |json }}</pre>
+   <pre ng-if="settings.local.debug">{{ settings |json }}</pre>
 </div>
 <script src="assets/angular.min.js"></script>
 <script src="assets/options.js"></script>

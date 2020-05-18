@@ -7,21 +7,23 @@ var app = angular.module('app', [])
         $scope.defaultTitleRepalces = [
             '(2160|1080|720)(p|i)', '(U|F)HD', // Auflösung
             'DD(20|51|71)|AC3L?D?|DL|DTS-?H?D?|AAC(20|51|71)?', // Tonspur
+            'True-?HD','(Dolby)?Atmos',
             'Ger(man)?',
             'Dub(bed)?','Sync(ed)?',
             'AmazonH?D?|iTunes|iTunesH?D?|netflix',
-            'Blue?Ray|webh?d?r?i?p?|hdtv',
-            'HDR', 'HEVC', '(h|x)26(4|5)(-[^\\s\\.\\{]+)?', // codec
+            '(Blue?Ray|web(rip|hd)?|hdtv)(-[^\\s\\.\\{}]+)?',
+            'HDR(10)?(plus)?', 'HEVC', '(h|x)26(4|5)(-[^\\s\\.\\{]+)?', // codec
             'iNTERNAL|miUHD|MZABI|TvR|TVS|EVO|NIMA4K',// releases
             // sonstiges:
-            'AVC-4SJ', 'REMUX','xxx','mp4(-[^\\s\\.\\{]+)?',
-            'repack(-[^\\s\\.\\{]+)?','proper(-[^\\s\\.\\{}]+)?'];
+            'AVC-4SJ', 'xxx','mp4(-[^\\s\\.\\{]+)?',
+            'REMUX(-[^\\s\\.\\{]+)?', 'repack(-[^\\s\\.\\{]+)?','proper(-[^\\s\\.\\{}]+)?'];
 
         $scope.settings = {
             local: {
                 nzbclient: '',
                 url: '',
-                auth: ''
+                auth: '',
+                debug: 0
             },
             global: {
                 titlecleanup: true,
