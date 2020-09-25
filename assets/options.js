@@ -4,21 +4,38 @@
 var app = angular.module('app', [])
     .controller('ctrl', function controller($scope) {
 
+        var bullshitRegex = '(-[^\\s\\.\\{]+)?';
         $scope.defaultTitleRepalces = [
             '(2160|1080|720)(p|i)', '(U|F)HD', // Auflösung
-            'DD(20|51|71)|AC3L?D?|DL|DTS-?H?D?|AAC(20|51|71)?', // Tonspur
+            'DD(Plus)?(20|51|71)|AC3L?D?|DL|DTS-?H?D?|AAC(20|51|71)?', // Tonspur
             'True-?HD','(Dolby)?Atmos',
             'Ger(man)?',
             'Dub(bed)?','Sync(ed)?',
-            'AmazonH?D?|iTunes|iTunesH?D?|netflix',
-            '(Blue?Ray|web(rip|hd)?|hdtv)(-[^\\s\\.\\{}]+)?',
-            'HDR(10)?(plus)?', 'HEVC', '(h|x)26(4|5)(-[^\\s\\.\\{]+)?', // codec
-            'iNTERNAL|miUHD|MZABI|TvR|TVS|EVO|NIMA4K',// releases
+            '(Amazon|iTunes|maxdome|netflix)(HD)?',
+            '(Blue?Ray|web(rip|hd)?|hdtv)'+bullshitRegex,
+            'HDR(10)?(plus)?', 'HEVC', '(h|x)26(4|5)'+bullshitRegex, // codec
+            '(iNTERNAL|miUHD|MZABI|TvR|TVS|EVO|NIMA4K)'+bullshitRegex,// releases
             // sonstiges:
-            'AVC-4SJ', 'xxx','mp4(-[^\\s\\.\\{]+)?',
-            'REMUX(-[^\\s\\.\\{]+)?', 'repack(-[^\\s\\.\\{]+)?','proper(-[^\\s\\.\\{}]+)?'];
-
-        $scope.settings = {
+            'AVC'+bullshitRegex, 'xxx','mp4'+bullshitRegex,
+            'REMUX'+bullshitRegex, 'repack'+bullshitRegex,'proper'+bullshitRegex];
+        
+        $scope.defaultCategories = [
+            {
+                title: 'xxx',
+                regex: 'u?n?censored|xxx|sex|erotic',
+            },{
+                title:'tv',
+                regex: '(s\\d{1,2})?e\d{1,2}|episode\\s?\\d{1,2}|\\d{1,2}x\\d{1,2}'
+            },{
+                title: 'default',
+                regex: 's\\d{1,2}' // staffel komplett
+            },{
+                title: 'movie',
+                regex: '2160p|1080p|720p|UHD|FHD|HD'
+            }
+        ];
+        
+            $scope.settings = {
             local: {
                 nzbclient: '',
                 url: '',
@@ -26,10 +43,15 @@ var app = angular.module('app', [])
                 debug: 0
             },
             global: {
+                categories: $scope.defaultCategories,
                 titlecleanup: true,
                 titlereplaces: $scope.defaultTitleRepalces,
                 sites: []
             }
+        };
+        $scope.resetCategories = function() {
+            $scope.settings.global.categories = $scope.defaultCategories;
+            $scope.saveSettings();
         };
         $scope.resetTitleRepalces = function() {
             $scope.settings.global.titlereplaces = $scope.defaultTitleRepalces;

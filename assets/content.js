@@ -245,8 +245,8 @@ if (typeof window.nzbBUddy === "undefined")
         { provider: 'nzblnk', link: 'a[href*="nzblnk:"]' },
         //{provider: 'nzbclub', link: 'a[href*="nzbclub.com/search.aspx"]'},
         { provider: 'nzbindex', link: 'a[href*="nzbindex.com/search/?"]' },
-        { provider: 'nzbindex', link: 'a[href*="nzbindex.nl/search/?"]' }
-        //{provider: 'binsearch', link: 'a[href*="binsearch.info/?"]'},
+        { provider: 'nzbindex', link: 'a[href*="nzbindex.nl/search/?"]' },
+        { provider: 'binsearch',link: 'a[href*="binsearch.info/?"]'}
         //{provider: 'newzleech', link: 'a[href*="newzleech.com/?"]'} 
     ];
 

@@ -1,6 +1,18 @@
-
+chrome.runtime.onStartup.addListener(function() {
+    chrome.cookies.set({
+        url: "https://nzbindex.nl",
+        domain: "nzbindex.nl",
+        name: "agreed",
+        value: "true"
+    });
+});
 chrome.runtime.onInstalled.addListener(function () {
     // context menu
+    chrome.contextMenus.create({
+        'id': 'magic',
+        'title': 'extract nzb data',
+        'contexts': ["selection"]
+    });
     chrome.contextMenus.create({
         'id': 'nzbindex',
         'title': 'NZBindex.nl',
@@ -17,9 +29,51 @@ chrome.runtime.onInstalled.addListener(function () {
 chrome.contextMenus.onClicked.addListener(function (data, tab) {
     if (data.menuItemId === 'nzbindex' && data.selectionText) {
         chrome.tabs.create({ url: 'https://nzbindex.nl/?q=' + data.selectionText + '&sort=agedesc&hidespam=1' });
+        /*searchNzbindex(data.selectionText)
+            .then(function (results) {
+                if (settings.local.debug) console.log("searchNzbindex done", results);
+                if (results.length === 1) {
+                    enqueueNzb({
+                        'url': results[0].nzb,
+                        'title': data.selectionText,
+                    }, tab.id);
+                } else if (results.length < 6) {
+                    if (settings.local.debug) console.log('processing multiple results');
+                    chrome.tabs.sendMessage(tab.id, { 'search': data.selectionText, 'results': results });
+                } else {
+                    chrome.tabs.sendMessage(tab.id, { 'warning': results.length + ' Treffer für die Suche' });
+                    chrome.tabs.create({ url: 'https://nzbindex.nl/?q=' + data.selectionText + '&sort=agedesc&hidespam=1' });
+                }
+            })
+            .fail(function (error) {
+                if (settings.local.debug) console.log('searchNzbindex failed', error);
+                if (error === 'Nix gefunden :(') {
+                    chrome.tabs.sendMessage(tab.id, { 'warning': 'Suche bei NZBindex ergab keine Treffer, suche bei Binsearch...' });
+                }
+            });
+            */
     }
-    if (data.menuItemId === 'binsearch' && data.selectionText) {
+    else if (data.menuItemId === 'binsearch' && data.selectionText) {
         chrome.tabs.create({ url: 'https://www.binsearch.info/?q=' + data.selectionText + '&max=100&adv_age=1100&server=' });
+    }
+    else if (data.menuItemId === 'magic' && data.selectionText) {
+        
+        //console.log(data.selectionText);
+        var _title = /title\s?\:?\s*([^\s]+)/gi.exec(data.selectionText);
+        var _title2 = /(^.+(s\d{2}e\d{2}|1080p?|720p?|UHD|FHD|\d{4})[^\s]+)\s{2,}/gi.exec(data.selectionText);
+        var _header = /header\s?\:?\s*([^\s]+)/gi.exec(data.selectionText)[1];
+        var _pass = /(pw|password|passwort|pass)\s?\:?\s*([^\s]+)/gi.exec(data.selectionText)[2];
+
+        console.log("_title:", (_title ? _title[1] : ( _title2 ? _title2[1] : null)) || tab.title);
+        console.log("_header:", _header);
+        console.log("_pass:", _pass);
+
+        processSearch(tab.id, {
+            provider: 'manual',
+            title: _title  || tab.title,
+            header: _header,
+            pass: _pass
+        });
     }
 });
 
@@ -143,7 +197,8 @@ chrome.storage.onChanged.addListener(function (changes, areaName) {
 });
 
 
-function _nzbClient(_fnc, _data, callback) {
+function _nzbClient(_fnc, _data, callback) 
+{
 
     //console.log("current settings:", settings);
 
@@ -170,19 +225,20 @@ function _nzbClient(_fnc, _data, callback) {
 
     var url = this.settings.local.url + api.endpoint + this.settings.local.auth + '&' + api[_fnc];
 
-    // generate spi request url
+    // generate api request url
     if (typeof _data !== undefined && _data !== null)
-        for (var _param in _data)
-            if (_data.hasOwnProperty(_param)) url += '&' + api[_param] + '=' + encodeURI(_data[_param]);
-    //console.log("url: ", url);
+        for (var _param in _data) if (_data.hasOwnProperty(_param)) url += '&' + api[_param] + '=' + encodeURIComponent(_data[_param]);
+
+    if (settings.local.debug) console.log("calling "+settings.local.nzbclient+" API: " + url);
+// http://127.0.0.1//api?output=json&apikey=ec75776b25d8242a701952f6d74b8a06&mode=addurl&name=https://nzbindex.nl/download/464097037/&nzbname=Crowded%20S01E07%7B%7BHEINUlS8s2lBaODsSYUEVE30u%7D%7D&cat=tv    
 
     jQuery.getJSON(url)
         .done(function (result) {
-            //console.log("result: ", result);
+            if (settings.local.debug) console.log("done: " + result);
             if (typeof callback !== 'undefined') callback(result);
         })
         .fail(function (jqxhr, textStatus, error) {
-            //console.log(jqxhr, textStatus, error);
+            if (settings.local.debug) console.log("fail:",jqxhr, textStatus, error);
             if (typeof callback !== 'undefined') callback({ 'error': error });
         });
     return true;
@@ -273,13 +329,7 @@ function processSearch(tabId, search) {
         search.header = _header[1];
         search.pass = (_pass === null ? false : _pass[1]);
         search.url = '';
-
-        console.log("_title", search.title);
-        console.log("_category", search.category);
-        console.log("_header", search.header);
-        console.log("_pass", search.pass);
-
-        //console.log("after",search.data);
+        if (settings.local.debug) console.log("search data", search);
 
         searchNzbindex(search.header)
             .then(function (results) {
@@ -304,7 +354,67 @@ function processSearch(tabId, search) {
                         });
                 }
             });
-    } else if (search.provider === 'nzbindex') { }
+    } 
+    else if (search.provider === 'nzbindex') 
+    {
+        _header = /[?&]q=([^&]+)/g.exec(search.url);
+
+        search.header = _header[1];
+        search.category = guessCategoryFromTitle(search.title);
+        search.url = '';
+
+        searchNzbindex(search.header)
+            .then(function (results) {
+                if (settings.local.debug) console.log("searchNzbindex done", results);
+                processSearchResults(tabId, search, results);
+            })
+            .fail(function (error) {
+                if (settings.local.debug) console.log('searchNzbindex failed', error);
+                if (error === 'Nix gefunden :(') {
+                    chrome.tabs.sendMessage(tabId, { 'warning': 'Suche bei NZBindex ergab keine Treffer, suche bei Binsearch...' });
+                    return;
+                    searchBinsearch(search.header)
+                        .then(function (results) {
+                            if (settings.local.debug) console.log("searchBinsearch done", results);
+                            processSearchResults(search, results);
+                        })
+                        .fail(function (error) {
+                            if (settings.local.debug) console.log('searchBinsearch failed', error);
+                            if (error === 'Nix gefunden :(') {
+                                chrome.tabs.sendMessage(tabId, { 'warning': 'Suche bei NZBindex ergab keine Treffer, suche bei Binsearch...' });
+                            }
+                        });
+                }
+            });
+    }
+    else if (search.provider === 'manual')
+    {
+        search.category = guessCategoryFromTitle(search.title);
+
+        searchNzbindex(search.header)
+            .then(function (results) {
+                if (settings.local.debug) console.log("searchNzbindex done", results);
+                processSearchResults(tabId, search, results);
+            })
+            .fail(function (error) {
+                if (settings.local.debug) console.log('searchNzbindex failed', error);
+                if (error === 'Nix gefunden :(') {
+                    chrome.tabs.sendMessage(tabId, { 'warning': 'Suche bei NZBindex ergab keine Treffer, suche bei Binsearch...' });
+                    return;
+                    searchBinsearch(search.header)
+                        .then(function (results) {
+                            if (settings.local.debug) console.log("searchBinsearch done", results);
+                            processSearchResults(search, results);
+                        })
+                        .fail(function (error) {
+                            if (settings.local.debug) console.log('searchBinsearch failed', error);
+                            if (error === 'Nix gefunden :(') {
+                                chrome.tabs.sendMessage(tabId, { 'warning': 'Suche bei NZBindex ergab keine Treffer, suche bei Binsearch...' });
+                            }
+                        });
+                }
+            });
+    }
 
 
 
@@ -333,16 +443,17 @@ function processSearch(tabId, search) {
 
 function searchNzbindex(header) {
     var d = $.Deferred();
-
+/*
     $.ajax({
         url: 'https://nzbindex.nl/disclaimer',
         method: 'POST',
         data: { 'agree': 'I agree' },
     })
         .done(function () {
+*/
             var results = [];
             $.ajax({
-                url: 'https://nzbindex.nl/search/json?q=' + header + '&sort=agedesc&hidespam=1',
+                url: 'https://nzbindex.nl/search/json?q=' + header, // + '&sort=agedesc&hidespam=1',
                 dataType: 'json', // @todo: json??
                 cache: false
             })
@@ -428,20 +539,22 @@ function searchNzbindex(header) {
                           });
                      */
                 });
+/*
         })
         .fail(function (error) {
             if (settings.local.debug) console.log('nzbindex disclaimer failed', error);
             d.reject(error);
         });
-
+*/
     return d.promise();
 }
 
-function searchBinsearch(header) {
+function searchBinsearch(header,allgroups = false) {
     var d = $.Deferred();
     var results = [];
+
     $.ajax({
-        url: 'https://www.binsearch.info/?max=1006q=' + header,
+        url: 'https://www.binsearch.info/?max=100&q=' + header + (allgroups ? '&server=2' : ''),
         cache: false
     })
         .done(function (html) {
@@ -517,6 +630,7 @@ function processSearchResults(tabId, search, results) {
         enqueueNzb({
             'url': results[0].nzb,
             'title': search.title.replace(/\./g, ' ') + (search.pass ? '{{' + search.pass + '}}' : ''),
+            'cleantitle': search.title.replace(/\./g, ' '),
             'category': search.category,
             'desc': results[0].title + "\r\n" + results[0].desc
         }, tabId);
@@ -534,19 +648,21 @@ function enqueueNzb(nzb, tabId) {
     _nzbClient('add', {
         'url': nzb.url,
         'title': nzb.title,
-        'category': nzb.category
+        'category': nzb.category || "default"
     },
         function (response) {
             if (settings.local.debug) console.log("enqueuing nzb response", response);
+            //console.log(typeof response);
+            //if(response.status === true)chrome.tabs.sendMessage(tabId, { 'success': nzb.cleantitle || nzb.title, 'msg': 'hinzugefügt in Kategorie "'+ nzb.category+'"' }); // success
 
-            if (typeof response.error === "undefined") chrome.tabs.sendMessage(tabId, { 'success': 'hinzugefügt', 'msg': nzb.title }); // success
+            if (typeof response.error === "undefined") chrome.tabs.sendMessage(tabId, { 'success': nzb.cleantitle || nzb.title, 'msg': 'hinzugefügt in Kategorie "'+ nzb.category+'"' }); // success
             else if (typeof response.error !== "undefined") chrome.tabs.sendMessage(tabId, { 'error': 'Das hat jetzt nicht funktioniert!', 'msg': 'Läuft der NZB Client?' }); // error
         });
 }
 
 // postprocessing
 function guessCategoryFromTitle(title) {
-    if (settings.local.debug) console.log("guess category from title: " + title);
+    if (settings.local.debug > 1) console.log("guess category from title: " + title);
     if (typeof title === "undefined" || !title) return "default";
     else if (title.search(/u?n?censored|xxx|sex|erotic/i) > -1) return 'xxx';
     else if (title.search(/(s\d{1,2})?e\d{1,2}|episode\s?\d{1,2}|\d{1,2}x\d{1,2}/i) > -1) return 'tv';
@@ -561,7 +677,7 @@ function cleanupTitle(title) {
     //console.log(this.settings.global.titlereplaces);
     this.settings.global.titlereplaces.forEach(function (_str) {
         var re = new RegExp('(\\.|\\s)(' + _str + ')', 'gi');
-        if (settings.local.debug) console.log(re, title + " >> " + title.replace(re, ""));
+        //if (settings.local.debug) console.log(re, title + " >> " + title.replace(re, ""));
         title = title.replace(re, "");
     });
     title = title.replace(/\(\s?\)/g, ""); // () wegmachen
