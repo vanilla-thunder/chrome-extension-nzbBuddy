@@ -14,6 +14,11 @@ chrome.runtime.onInstalled.addListener(function () {
         'contexts': ["selection"]
     });
     chrome.contextMenus.create({
+        'id': 'findnzb (collections)',
+        'title': 'findnzb.net',
+        'contexts': ["selection"]
+    });
+    chrome.contextMenus.create({
         'id': 'nzbindex',
         'title': 'NZBindex.nl',
         'contexts': ["selection"]
@@ -27,6 +32,7 @@ chrome.runtime.onInstalled.addListener(function () {
 });
 
 chrome.contextMenus.onClicked.addListener(function (data, tab) {
+    console.log(data.menuItemId);
     if (data.menuItemId === 'nzbindex' && data.selectionText) {
         chrome.tabs.create({ url: 'https://nzbindex.nl/?q=' + data.selectionText + '&sort=agedesc&hidespam=1' });
         /*searchNzbindex(data.selectionText)
@@ -53,24 +59,46 @@ chrome.contextMenus.onClicked.addListener(function (data, tab) {
             });
             */
     }
+    else if (data.menuItemId === 'findnzb' && data.selectionText) {        
+        processSearch(tab.id, {
+            provider: 'findnzb',
+            title: tab.title,
+            header: data.selectionText
+        });
+    }
     else if (data.menuItemId === 'binsearch' && data.selectionText) {
         chrome.tabs.create({ url: 'https://www.binsearch.info/?q=' + data.selectionText + '&max=100&adv_age=1100&server=' });
     }
-    else if (data.menuItemId === 'magic' && data.selectionText) {
+    else if (data.menuItemId === 'magic' && data.selectionText)
+    {
         
-        //console.log(data.selectionText);
+        console.log(data.selectionText);
+        
         var _title = /title\s?\:?\s*([^\s]+)/gi.exec(data.selectionText);
-        var _title2 = /(^.+(s\d{2}e\d{2}|1080p?|720p?|UHD|FHD|\d{4})[^\s]+)\s{2,}/gi.exec(data.selectionText);
-        var _header = /header\s?\:?\s*([^\s]+)/gi.exec(data.selectionText)[1];
-        var _pass = /(pw|password|passwort|pass)\s?\:?\s*([^\s]+)/gi.exec(data.selectionText)[2];
+        //console.log('_title');
+        //console.log(_title);
 
-        console.log("_title:", (_title ? _title[1] : ( _title2 ? _title2[1] : null)) || tab.title);
+        var _title2 = /(^.+(s\d{2}e\d{2}|1080p?|720p?|UHD|FHD|\d{4})[^\s]+)\s/gi.exec(data.selectionText);
+        //console.log('_title2');
+        //console.log(_title2);
+
+        var __title = ( _title? _title[1] : null ) || (_title2 ? _title2[1] : null ) || tab.title;
+
+        var _header = /header\s?\:?\s*([^\s]+)/gi.exec(data.selectionText)[1];
+        //console.log('_header');
+        //console.log(_header);
+
+        var _pass = /(password|passwort|pass|pw)(\s|\:)+\s*([^\s]+)/gi.exec(data.selectionText)[3];
+        //console.log(_pass);
+
+        console.log("_title:", __title);
         console.log("_header:", _header);
         console.log("_pass:", _pass);
 
+        //return false;
         processSearch(tab.id, {
             provider: 'manual',
-            title: _title  || tab.title,
+            title: __title,
             header: _header,
             pass: _pass
         });
@@ -269,9 +297,9 @@ function processSearch(tabId, search) {
     //jQuery.post('https://www.nzbindex.nl/agree/', {'agree': 'I agree'})
     //jQuery.post('http://nzbindex.nl/disclaimer', {'agree': 'I agree'}).done();
 
-    var _title = cleanupTitle(search.title),
-        _category = guessCategoryFromTitle(search.title),
-        _results = [];
+    var _results = [];
+    search.category = guessCategoryFromTitle(search.selection || search.title);
+    search.title = cleanupTitle(search.selection || search.title);
 
     // direct nzb link
     // müsste neu getestet werden
@@ -297,7 +325,7 @@ function processSearch(tabId, search) {
         _nzbClient('add', {
             'url': search.url,
             'title': _title + (search.pass ? '{{' + search.pass + '}}' : ''),
-            'category': _category
+            'category': search.category
         },
             function (response) {
                 chrome.notifications.create({
@@ -314,8 +342,8 @@ function processSearch(tabId, search) {
                 });
             });*/
         return;
-    } else if (search.provider === 'nzblnk') // nzblnk
-    {
+    } 
+    else if (search.provider === 'nzblnk') {
         // format:  nzblnk://?t=Lethal.Weapon.S02E01.GERMAN.DL.DUBBED.1080p.WebHD.h264-VoDTv&h=x6O4ZqE9A0rxv8TPV3p6ln333533QM&p=3RxWNJo5bRe42QKvLEwh
         // für nzblnk wird reguläre NZB Suche bei nzbindex gemacht
 
@@ -340,6 +368,18 @@ function processSearch(tabId, search) {
                 if (settings.local.debug) console.log('searchNzbindex failed', error);
                 if (error === 'Nix gefunden :(') {
                     chrome.tabs.sendMessage(tabId, { 'warning': 'Suche bei NZBindex ergab keine Treffer, suche bei Binsearch...' });
+                    
+                    searchBinsearch(search.header)
+                        .then(function (results) {
+                            if (settings.local.debug) console.log("searchBinsearch done", results);
+                            processSearchResults(search, results);
+                        })
+                        .fail(function (error) {
+                            if (settings.local.debug) console.log('searchBinsearch failed', error);
+                            if (error === 'Nix gefunden :(') {
+                                chrome.tabs.sendMessage(tabId, { 'warning': 'Suche bei NZBindex ergab keine Treffer, suche bei Binsearch...' });
+                            }
+                        });
                     return;
                     searchBinsearch(search.header)
                         .then(function (results) {
@@ -360,7 +400,6 @@ function processSearch(tabId, search) {
         _header = /[?&]q=([^&]+)/g.exec(search.url);
 
         search.header = _header[1];
-        search.category = guessCategoryFromTitle(search.title);
         search.url = '';
 
         searchNzbindex(search.header)
@@ -371,26 +410,39 @@ function processSearch(tabId, search) {
             .fail(function (error) {
                 if (settings.local.debug) console.log('searchNzbindex failed', error);
                 if (error === 'Nix gefunden :(') {
-                    chrome.tabs.sendMessage(tabId, { 'warning': 'Suche bei NZBindex ergab keine Treffer, suche bei Binsearch...' });
-                    return;
-                    searchBinsearch(search.header)
+                    //chrome.tabs.sendMessage(tabId, { 'warning': 'Suche bei NZBindex ergab keine Treffer, suche bei NZBKing...' });
+
+                    searchNzbKing(search.header)
                         .then(function (results) {
-                            if (settings.local.debug) console.log("searchBinsearch done", results);
-                            processSearchResults(search, results);
+                            if (settings.local.debug) console.log("searchNzbKing done", results);
+                            processSearchResults(tabId, search, results);
                         })
                         .fail(function (error) {
-                            if (settings.local.debug) console.log('searchBinsearch failed', error);
+                            if (settings.local.debug) console.log('searchNzbKing failed', error);
                             if (error === 'Nix gefunden :(') {
-                                chrome.tabs.sendMessage(tabId, { 'warning': 'Suche bei NZBindex ergab keine Treffer, suche bei Binsearch...' });
+                                chrome.tabs.sendMessage(tabId, { 'warning': 'Suche bei NzbKing ergab keine Treffer.' });
                             }
                         });
                 }
             });
     }
+    else if (search.provider === 'findnzb') 
+    {
+        searchFindNZB(search.header)
+        .then(function (results) {
+            if (settings.local.debug) console.log("searchFindNZB done", results);
+            processSearchResults(tabId, search, results);
+        })
+        .fail(function (error) {
+            if (settings.local.debug) console.log('searchFindNZB failed', error);
+            if (error === 'Nix gefunden :(') {
+                chrome.tabs.sendMessage(tabId, { 'warning': 'Suche bei FindNZB ergab keine Treffer' });
+                return;
+            }
+        });
+    }
     else if (search.provider === 'manual')
     {
-        search.category = guessCategoryFromTitle(search.title);
-
         searchNzbindex(search.header)
             .then(function (results) {
                 if (settings.local.debug) console.log("searchNzbindex done", results);
@@ -549,6 +601,82 @@ function searchNzbindex(header) {
     return d.promise();
 }
 
+function searchNzbKing(header) {
+    var d = $.Deferred();
+    var results = [];
+    $.ajax({
+        url: 'https://www.nzbking.com/search/?q=' + header, // + '&sort=agedesc&hidespam=1',
+        cache: false
+    })
+    .done(function (html) {
+        if (settings.local.debug) console.log("NZBKing search done", html);
+
+        $(html).find('div.search-results-group').first().children().each(function (index, element) {
+            if(index === 0) return;
+            //console.log(element);
+
+            var _link = $(element).find('.search-subject').first().find('a.button').first().attr('href');
+            //var _link = new URLSearchParams($(element).find('.search-subject').first().find('a.button').first().attr('href'));
+            //console.log("https://www.nzbking.com/"+_link);
+
+            results.push({
+                'title': $(element).find('.search-age').text().trim(),
+                'desc': $(element).find('.search-subject').text().trim(),
+                'nzb': "https://www.nzbking.com/"+_link
+            });
+            
+        });
+
+        if(results.length > 0) return d.resolve(results);
+        else return d.reject("Nix gefunden :(");
+    })
+    .fail(function (error) {
+        if (settings.local.debug) console.log('NZBKing search failed', error);            
+    });
+
+    return d.promise();
+}
+
+function searchFindNZB(header) {
+    var d = $.Deferred();
+    var results = [];
+    $.ajax({
+            url: 'https://findnzb.net/?q=' + header, // + '&init=form&sort=relevance&limit=25',
+            cache: false
+        })
+        .done(function (html) {
+            if (settings.local.debug) console.log("findnzb search done", html);
+
+            
+            $(html).find('table.results tbody').first().children().each(function (index, element) {
+                if(index === 0) return;
+                //console.log(element);
+                
+                var _link = new URLSearchParams($(element).find('td').last().find('a').attr('href'));
+
+                results.push({
+                    'title': $(element).find('td .big a').text().trim() + ' | ' + $(element).children('td').eq(4).text().trim(),
+                    'desc': $(element).children('td').eq(1).text(),
+                    'nzb': _link.get("url")
+                });
+                
+            });
+            //console.log(results);
+            // https://findnzb.net/nzb/?collection=217589111&uuid=919965ad-2f87-5123-f096-c3fb6cd0cbb8&q=5f413375bc9e4ad7807063f29a22382a#
+            // https://findnzb.net/get/collection/VG5kS0ZOVi9ydkJhSWNqazJkMnhkdi9KNkl5ZVBRT05QcHNwL1pURTV4TStueE9rKytDdmYxVUFYU2E1QWdBM0hMazNCTEY4/?save=5f413375bc9e4ad7807063f29a22382a
+           //  http://findnzb.net/get/collection/VG5kS0ZOVi9ydkJhSWNqazJkMnhkdi9KNkl5ZVBRT05QcHNwL1pURTV4TStueE9rKytDdmYxVUFYU2E1QWdBM0hMazNCTEY4/?save=5f413375bc9e4ad7807063f29a22382a
+
+            if(results.length > 0) return d.resolve(results);
+            else return d.reject("Nix gefunden :(");
+        })
+        .fail(function (error) 
+        {
+            if (settings.local.debug) console.log('findnzb search failed', error);            
+        });
+
+    return d.promise();
+}
+
 function searchBinsearch(header,allgroups = false) {
     var d = $.Deferred();
     var results = [];
@@ -673,13 +801,18 @@ function guessCategoryFromTitle(title) {
 
 function cleanupTitle(title) {
     if (!this.settings.global.titlecleanup) return title;
+    if (settings.local.debug > 1) console.log("cleaning title: " + title);
     title = title.replace(/\++/g, " "); // + wegmachen
-    //console.log(this.settings.global.titlereplaces);
+    //if (settings.local.debug > 1) console.log(this.settings.global.titlereplaces);
     this.settings.global.titlereplaces.forEach(function (_str) {
         var re = new RegExp('(\\.|\\s)(' + _str + ')', 'gi');
-        //if (settings.local.debug) console.log(re, title + " >> " + title.replace(re, ""));
+        if (settings.local.debug > 1) console.log( "-----");
+        if (settings.local.debug > 1) console.log( "| regex:" ,re);
+        if (settings.local.debug > 1) console.log( "| " + title );
+        if (settings.local.debug > 1) console.log( "| " + title.replace(re, ""));
         title = title.replace(re, "");
     });
+    if (settings.local.debug > 1) console.log( "-----");
     title = title.replace(/\(\s?\)/g, ""); // () wegmachen
     return title;
 }

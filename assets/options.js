@@ -7,17 +7,19 @@ var app = angular.module('app', [])
         var bullshitRegex = '(-[^\\s\\.\\{]+)?';
         $scope.defaultTitleRepalces = [
             '(2160|1080|720)(p|i)', '(U|F)HD', // Auflösung
-            'DD(Plus)?(20|51|71)|AC3L?D?|DL|DTS-?H?D?|AAC(20|51|71)?', // Tonspur
+            'DD(P(lus)?)?\\s?(2|5|7)\\.?(0|1)|E?AC3L?D?|DL|DTS-?H?D?|AAC(2|5|7)\\.?(0|1)?', // Tonspur
             'True-?HD','(Dolby)?Atmos',
             'Ger(man)?',
             'Dub(bed)?','Sync(ed)?',
-            '(Amazon|iTunes|maxdome|netflix)(HD)?',
+            '(AMZN|Amazon|iTunes|hulu|maxdome|netflix)(HD)?',
             '(Blue?Ray|web(rip|hd)?|hdtv)'+bullshitRegex,
-            'HDR(10)?(plus)?', 'HEVC', '(h|x)26(4|5)'+bullshitRegex, // codec
+            'HDR(10)?(plus)?', 'HEVC', '(h|x)\\.?26(4|5)'+bullshitRegex, // codec
             '(iNTERNAL|miUHD|MZABI|TvR|TVS|EVO|NIMA4K)'+bullshitRegex,// releases
             // sonstiges:
             'AVC'+bullshitRegex, 'xxx','mp4'+bullshitRegex,
-            'REMUX'+bullshitRegex, 'repack'+bullshitRegex,'proper'+bullshitRegex];
+            'REMUX'+bullshitRegex, 'repack'+bullshitRegex,'proper'+bullshitRegex,
+            ' - Usenet - 4all', // u4a website title
+        ];
         
         $scope.defaultCategories = [
             {

@@ -187,6 +187,7 @@ function searchNZB($link, $provider) {
     toastr.info('Suche läuft...', null, { timeOut: 300 });
     var nzb = {
         title: document.title,
+        selection: window.getSelection() ? window.getSelection().toString() : false,
         link: $link.text(),
         url: $link[0].href || $link.attr("href"),
         provider: $provider
